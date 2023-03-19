@@ -508,7 +508,10 @@ test.iloc[fn, 0:2]
 
 # %%
 # display the molecular structures of all FPs
-img1=Chem.Draw.MolsToGridImage(fp_list,molsPerRow=4,subImgSize=(200,200),legends=[mol.GetProp('_Name') for mol in fp_list])
+img1=Chem.Draw.MolsToGridImage(fp_list,
+                               molsPerRow=4,
+                               subImgSize=(200,200),
+                               legends=[mol.GetProp('_Name') for mol in fp_list])
 img1
 
 # %% [markdown]
@@ -516,7 +519,10 @@ img1
 
 # %%
 # display the molecular structures of all FNs
-img2=Chem.Draw.MolsToGridImage(fn_list,molsPerRow=4,subImgSize=(200,200),legends=[mol.GetProp('_Name') for mol in fn_list])
+img2=Chem.Draw.MolsToGridImage(fn_list,
+                               molsPerRow=4,
+                               subImgSize=(200,200),
+                               legends=[mol.GetProp('_Name') for mol in fn_list])
 img2
 
 # %% [markdown]
@@ -572,5 +578,20 @@ fig.update_layout(showlegend=True)
 # - Use predicit values on trained DecisionTree ML model
 # - Measure accuracy of your model
 # - Use RdK!t
+
+# %% [markdown]
+# # ------- Journal of Chemical Education Article --------
+# If you would like to learn more about the decision tree and other simple machine-learning models, below is the link to the paper that helped me get started. Some suggestions on how to get the most out of this paper:
+# 
+# 1. To quickly start, read the .doc file from the SI, if you are comfortable with decision trees now
+# 2. If you want to build chemical intuition, go through the main paper and then read the .doc file
+# 3. The Jupyter Notebook they shared is slightly outdated, and most likely, it will give you errors if you try to run it. There are two solutions to this: [Ask me or go to the GitHub repository of the authors, https://github.com/elizabeththrall/MLforPChem/tree/main/MLforvibspectroscopy]
+# 
+# Reference:
+# Machine Learning for Functional Group Identification in Vibrational Spectroscopy: A Pedagogical Lab for Undergraduate Chemistry Students, https://pubs.acs.org/doi/full/10.1021/acs.jchemed.1c00693
+# 
+
+# %% [markdown]
+# 
 
 
