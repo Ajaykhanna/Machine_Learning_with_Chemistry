@@ -1,9 +1,24 @@
 ## Generative Model: GraphAF
 # ___
-# The model consists of two parts, a graph representation model and a graph generative module.
-# We define a Relational Graph Convolutional Networks (RGCN) as our representation model.
-# We use the module AutoregressiveGeneration as the training task for GraphAF.
-# The task consists of a node flow model and an edge flow model, which define invertible mapping between node / edge types and noise distributions.
+"""
+Autoregressive Molecule Generation using GraphAF
+
+This script demonstrates the application of Graph Autoregressive Flow (GraphAF)
+for generating molecules from the ZINC250k dataset. The molecules are generated
+using a set of predefined hyperparameters without any specific task-driven goal.
+
+The script:
+1. Loads the ZINC250k dataset.
+2. Defines the GraphAF model.
+3. Trains the model.
+4. Generates molecules using the trained model.
+
+Usage:
+    python <script_name.py>
+    
+Outputs:
+    A `.pkl` model file and generated molecule SMILES strings.
+"""
 
 from torchdrug import core, datasets, models, tasks
 from torchdrug.layers import distribution

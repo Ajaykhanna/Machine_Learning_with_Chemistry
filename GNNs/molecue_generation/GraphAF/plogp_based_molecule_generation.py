@@ -1,5 +1,24 @@
 ## Goal-Directed Molecule Generation with Reinforcement Learning: GraphAF --> pLOGP
 # ___
+"""
+Goal-Directed Molecule Generation with Reinforcement Learning using GraphAF for pLOGP
+
+This script employs the Graph Autoregressive Flow (GraphAF) model to generate molecules
+optimized for the `pLOGP` property. The `pLOGP` is a measure of the molecule's lipophilicity.
+
+The script:
+1. Loads the ZINC250k dataset.
+2. Defines the GraphAF model.
+3. Loads a pretrained model.
+4. Fine-tunes the model using reinforcement learning for the `pLOGP` goal.
+5. Generates molecules using the fine-tuned model.
+
+Usage:
+    python <script_name.py>
+
+Outputs:
+    A `.pkl` model file after fine-tuning and generated molecule SMILES strings.
+"""
 
 import torch
 from torchdrug import core, datasets, models, tasks

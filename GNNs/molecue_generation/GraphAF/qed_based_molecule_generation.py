@@ -1,5 +1,24 @@
 ## Goal-Directed Molecule Generation with Reinforcement Learning: GraphAF --> QED
 # ___
+"""
+Goal-Directed Molecule Generation with Reinforcement Learning using GraphAF for QED
+
+This script uses the Graph Autoregressive Flow (GraphAF) model to produce molecules
+optimized for the Quantitative Estimation of Drug-likeness (QED) score.
+
+The script:
+1. Loads the ZINC250k dataset.
+2. Defines the GraphAF model.
+3. Loads a pretrained model.
+4. Fine-tunes the model using reinforcement learning with a focus on maximizing the QED score.
+5. Generates molecules using the fine-tuned model.
+
+Usage:
+    python <script_name.py>
+
+Outputs:
+    A `.pkl` model file after fine-tuning and generated molecule SMILES strings.
+"""
 
 import torch
 from torchdrug import core, datasets, models, tasks
@@ -7,7 +26,6 @@ from torchdrug.layers import distribution
 from torch import nn, optim
 from collections import defaultdict
 
-# %%
 dataset = datasets.ZINC250k(
     "~/molecule-datasets/", kekulize=True, atom_feature="symbol"
 )
@@ -70,6 +88,3 @@ solver.load(
 )
 results = task.generate(num_sample=32)
 print(results.to_smiles())
-
-
-
