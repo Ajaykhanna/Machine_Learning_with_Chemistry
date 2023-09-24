@@ -11,34 +11,34 @@ This repository contains Python scripts demonstrating the application of Graph C
 6. [Notes](#notes)
 
 ### Molecule Generation with GCPN - ZINC250k
-[Link to Script](path_to_script_1.py)
+[Link to Script](https://github.com/Ajaykhanna/Machine_Learning_with_Chemistry/blob/f56dff2773dd5b7deaf1e317966810d6de91cfe5/GNNs/molecue_generation/GCPN/pretraining_molecule_generation.ipynb)
 
 This script showcases the use of GCPN on the ZINC250k dataset. The generated molecules are tuned to have properties represented by electronic energy types.
 
 #### How to Run:
 ```bash
-python path_to_script_1.py
+python pretraining_molecule_generation.py
 ```
 
 ### GCPN for Reinforcement Learning
-Property Specific Molecule Generation: GCPN for Reinforcement Learning
-[Link to Script](path_to_script_1.py)
+[Link to Script](https://github.com/Ajaykhanna/Machine_Learning_with_Chemistry/blob/f56dff2773dd5b7deaf1e317966810d6de91cfe5/GNNs/molecue_generation/GCPN/plogp_based_molecule_generation.ipynb)
 
+Property Specific Molecule Generation: GCPN for Reinforcement Learning. 
 The script demonstrates molecule generation using GCPN with reinforcement learning. The dataset used is ZINC250k, and the primary goal is molecule generation optimized for properties described by the plogp measure.
 
 How to Run:
 ```
-python path_to_script_2.py
+python pretraining_molecule_generation.py
 ```
 
 ### GCPN for QED - Quantitative Estimation of Drug-likeness
-[Link to Script](path_to_script_1.py)
+[Link to Script](https://github.com/Ajaykhanna/Machine_Learning_with_Chemistry/blob/f56dff2773dd5b7deaf1e317966810d6de91cfe5/GNNs/molecue_generation/GCPN/qed_based_molecule_generation.ipynb)
 
 In this script, GCPN is applied for generating molecules with a focus on maximizing their drug-likeness, as assessed by the QED score. The ZINC250k dataset is utilized, and the model aims to maximize the QED measure.
 
 How to Run:
 ```bash
-python path_to_script_1.py
+python qed_based_molecule_generation.py
 ```
 
 ### Dependencies
