@@ -1,8 +1,6 @@
 # Goal-Directed Molecule Generation using Generative Models like GCPN and GraphAF:pill:
 
-```typescript 
 🚀 I've recently embarked on an exhilarating journey into the world of generative graph neural networks and the magic of inverse design with AI! 💡 Leveraging the power of PyTorch and the TorchDrug library, I've dived deep into tutorials that have illuminated the intricacies of generative GNNs and their transformative potential in molecule generation. 🧪 This repository is a testament to that journey! Here, you'll find Python scripts that showcase the prowess of the Graph Convolutional Policy Network (GCPN) in crafting molecules tailored with specific properties. 🌟 Our guiding star? Maximizing properties like drug-likeness, captured beautifully by the QED score, and honing in on specific electronic energy types. I'm thrilled about this learning curve and am eager to explore even more in this space! 🌌
-```
 
 ## :bookmark_tabs: Table of Contents
 **Generative Model GCPN for Molecule Generation**
