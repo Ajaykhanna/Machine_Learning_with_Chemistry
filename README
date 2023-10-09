@@ -1,15 +1,12 @@
 # Machine_Learning_with_Chemistry
 This repository contains tutorials on using machine learning methods to predict chemical properties. These tutorials represents using ML as tool and not core implementation of any ML method. The goal from these tutorials is to see how ML helps in making better predictions while keep the chemical intuition as the base.
 
-
 The repo Chemistry_with_Machine_Learning_101 contains, tutorial I have given in the JCTC club at UC Merced during my time as a PhD student. These tutorials introduces students to the use of machine leaning in chemistry and how these models can benefit in accelerating our understanding of vast chemical space.
 
 1. 🧪 Identify carbonyl groups like a machine!
-    This code trains a decision tree model on IR spectra to predict whether molecules contain a carbonyl functional group. It demonstrates key steps in applying supervised ML to chemistry:
-
+This code trains a decision tree model on IR spectra to predict whether molecules contain a carbonyl functional group. It demonstrates key steps in applying supervised ML to chemistry:
     - 📥 Loading and preprocessing training + test data
     - 🌳 Training a decision tree classifier 
     - ✅ Testing on holdout data & analyzing model performance
     - 🔍 Investigating errors by visualizing molecules & spectra
-
-    See molecules through the eyes of a machine! Trained on real experimental data, this model can predict the presence of specific chemical functional groups - no     wet lab required!
+See molecules through the eyes of a machine! Trained on real experimental data, this model can predict the presence of specific chemical functional groups - no     wet lab required!
