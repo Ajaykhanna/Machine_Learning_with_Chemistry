@@ -1,1 +1,14 @@
 Machine learning can be a difficult concept to understand, especially if you're not familiar with how it can be used to predict chemical properties. For chemists, this can be even more challenging since there aren't any courses that introduce the use of data analytics tools, let alone machine learning programs. That's why I created this GitHub repository to help chemists (like myself) understand the basics of machine learning and its applications in predicting properties like toxicity, solubility, IR frequencies, and hybridization. My aim is to simplify the ML concepts and relate them to chemical intuition, so it's easier to understand and apply.
+
+The repo Machine Learning with Scikit-Learn contains, tutorial I have given in the JCTC club at UC Merced during my time as a PhD student, these tutorials induces students to the use of machine leaning in chemistry and they can benefit in accelerating our understanding of vast chemical space.
+
+1. 🧪 Identify carbonyl groups like a machine!
+
+    This code trains a decision tree model on IR spectra to predict whether molecules contain a carbonyl functional group. It demonstrates key steps in applying supervised ML to chemistry:
+
+    - 📥 Loading and preprocessing training + test data
+    - 🌳 Training a decision tree classifier 
+    - ✅ Testing on holdout data & analyzing model performance
+    - 🔍 Investigating errors by visualizing molecules & spectra
+
+    See molecules through the eyes of a machine! Trained on real experimental data,     this model can predict the presence of specific chemical functional groups - no     wet lab required!
