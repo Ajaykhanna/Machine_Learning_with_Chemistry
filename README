@@ -1,12 +1,46 @@
-# Machine_Learning_with_Chemistry
-This repository contains tutorials on using machine learning methods to predict chemical properties. These tutorials represents using ML as tool and not core implementation of any ML method. The goal from these tutorials is to see how ML helps in making better predictions while keep the chemical intuition as the base.
+# Machine_Learning_with_Chemistry 🧪💻
 
-The repo Chemistry_with_Machine_Learning_101 contains, tutorial I have given in the JCTC club at UC Merced during my time as a PhD student. These tutorials introduces students to the use of machine leaning in chemistry and how these models can benefit in accelerating our understanding of vast chemical space.
+Welcome to the Machine_Learning_with_Chemistry repository!
+This repository contains tutorials and code examples on using machine learning methods to predict chemical properties.
+The goal of these tutorials is to demonstrate how machine learning can enhance our understanding of chemistry and improve predictions
+while keeping the chemical intuition as the foundation.
 
-1. 🧪 Identify carbonyl groups like a machine!
-This code trains a decision tree model on IR spectra to predict whether molecules contain a carbonyl functional group. It demonstrates key steps in applying supervised ML to chemistry:
-    - 📥 Loading and preprocessing training + test data
-    - 🌳 Training a decision tree classifier 
-    - ✅ Testing on holdout data & analyzing model performance
-    - 🔍 Investigating errors by visualizing molecules & spectra
-See molecules through the eyes of a machine! Trained on real experimental data, this model can predict the presence of specific chemical functional groups - no     wet lab required!
+## Directory Structure 📂
+
+1. 🧪 **Identify carbonyl groups like a machine!** 🌳🔍
+    This code trains a decision tree model on IR spectra to predict whether molecules contain a carbonyl functional group.
+    It demonstrates key steps in applying supervised machine learning to chemistry, including loading and preprocessing data,
+    training a decision tree classifier, testing on holdout data, and analyzing model performance.
+    With this model, you can see molecules through the eyes of a machine and predict the presence of specific chemical
+    functional groups without the need for wet lab experiments!
+
+2. **DeepChem tutorials** 🧪📚
+    This directory contains tutorials on how to use DeepChem, a deep learning library, to train and test models on molecular data.
+    The code examples in this directory are based on the book "Deep Learning in Life Sciences" and
+    provide practical implementations of deep learning techniques in chemistry.
+
+3. **GNNs** 🌐🔬
+    Explore the world of Graph Neural Networks (GNNs) and their applications in predicting properties of molecules.
+    This directory includes tutorials that provide a basic understanding of GNNs. The examples are based on the work
+    of Dr. Pat Walter and Dr. Vijay Pandey, and they serve as a starting point for learning about GNNs in chemistry.
+
+4. **Machine Learning with Scikit Learn** 🧪🔬
+    Dive into the world of machine learning with Scikit Learn, a popular machine learning library.
+    This directory contains tutorials that cover various simple machine learning models, including
+    - linear regression,
+    - logistic regression,
+    - k-nearest neighbors,
+    - decision trees,
+    - support vector machines,
+    - random forests,
+    - gradient boosted trees,
+    - k-means clustering, and
+    - principal component analysis (PCA).
+
+## Contributions and Updates 🚀
+This repository is a work in progress, and contributions are welcome! If you have any suggestions,
+improvements, or additional code examples related to machine learning in chemistry, feel free to submit a pull request.
+
+Let's learn and explore together!
+
+Happy coding! 💻🔬🚀
