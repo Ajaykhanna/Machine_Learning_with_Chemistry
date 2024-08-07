@@ -37,6 +37,10 @@ while keeping the chemical intuition as the foundation.
     - k-means clustering, and
     - principal component analysis (PCA).
 
+5. ** Vertical Excitation Energiess with Random Forest** 🌳🔍
+    This ML ode demonstrates how to use a random forest model to predict vertical excitation energies of molecules in gas phase.
+    The snapshots are obtained from molecular dynamics simulations and the VEEs are obtained quantum mechanical calculations.
+
 ## Contributions and Updates 🚀
 This repository is a work in progress, and contributions are welcome! If you have any suggestions,
 improvements, or additional code examples related to machine learning in chemistry, feel free to submit a pull request.
