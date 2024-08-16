@@ -38,7 +38,7 @@ while keeping the chemical intuition as the foundation.
     - principal component analysis (PCA).
 
 5. **Vertical Excitation Energiess with Random Forest** 🌳🔍
-    This ML ode demonstrates how to use a random forest model to predict vertical excitation energies of molecules in gas phase.
+    This ML model demonstrates how to use a random forest model to predict vertical excitation energies of molecules in gas phase.
     The snapshots are obtained from molecular dynamics simulations and the VEEs are obtained quantum mechanical calculations.
 
 ## Contributions and Updates 🚀
