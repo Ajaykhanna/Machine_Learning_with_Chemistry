@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+
+dashboard_cache/
+exports/
+
+.vscode/
+.specstory/
+
+_test_dashboard_comments.inp
+_test_dashboard_priority.inp

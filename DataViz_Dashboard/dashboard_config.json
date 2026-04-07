@@ -1,0 +1,70 @@
+{
+  "defaults": {
+    "states": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "pairs": [
+      "1-2",
+      "1-3",
+      "2-3"
+    ],
+    "histogram_bins": 64
+  },
+  "units": {
+    "energy": "eV",
+    "force_norm": "eV/$\\AA$",
+    "dipole_magnitude": "atomic units",
+    "nacr_norm": "1/$\\AA$",
+    "denacr_norm": "eV/$\\AA$"
+  },
+  "axis_labels": {
+    "energy": "Energy",
+    "force_norm": "Force Norm",
+    "dipole_magnitude": "Dipole Magnitude",
+    "nacr_norm": "NACR Norm",
+    "denacr_norm": "dENACR Norm"
+  },
+  "files": {
+    "energy": {
+      "source": "acn_S.npy",
+      "fallback_prefix": "acn_S"
+    },
+    "force_norm": {
+      "source": "acn_F.npy",
+      "fallback_prefix": "acn_F"
+    },
+    "dipole_magnitude": {
+      "source": "acn_D.npy",
+      "fallback_prefix": "acn_D"
+    },
+    "nacr_norm": {
+      "source": "acn_NACR.npy",
+      "fallback_prefix": "acn_NACR"
+    },
+    "denacr_norm": {
+      "source": "acn_dENACR.npy",
+      "fallback_prefix": "acn_dENACR"
+    }
+  },
+  "export": {
+    "dpi": 300,
+    "figure_size": [
+      10.5,
+      5.8
+    ],
+    "line_width": 1.8,
+    "formats": [
+      "png",
+      "pdf"
+    ]
+  },
+  "overview_levels": [
+    512,
+    1024,
+    2048,
+    4096
+  ]
+}

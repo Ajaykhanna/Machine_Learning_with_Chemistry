@@ -1,0 +1,34 @@
+# Lines starting with # are comments.
+
+# Core paths
+data_dir = C:\Users\401770\OneDrive - Los Alamos National Laboratory\PostDoc\LANL\ML_Projects\ML_NAMD\Raw_Data_2025\CIS_PySEQM\enol_ex_BOMD\s1\10_states\50K
+output_dir = exports
+port = 8141
+
+# Metric selection
+# Use a comma-separated list, or "all"
+metrics = all
+
+# Export formats: png, pdf, or both
+save_formats = both
+
+# Optional custom combined tensor filenames
+energy_file = acn_S.npy
+force_file = acn_F.npy
+dipole_file = acn_D.npy
+nacr_file = acn_NACR.npy
+denacr_file = acn_dENACR.npy
+
+# Optional fallback prefixes if combined tensors are missing
+energy_prefix = acn_S
+force_prefix = acn_F
+dipole_prefix = acn_D
+nacr_prefix = acn_NACR
+denacr_prefix = acn_dENACR
+
+# Optional axis-label overrides
+energy_axis_label = Energy
+force_axis_label = Force Norm
+dipole_axis_label = Dipole Magnitude
+nacr_axis_label = NACR Norm
+denacr_axis_label = dENACR Norm
