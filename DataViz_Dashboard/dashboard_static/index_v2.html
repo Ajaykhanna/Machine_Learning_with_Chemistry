@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trajectory Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/vendor/d3-lite.js"></script>
+    <script defer src="/static/app_v2.js"></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Offline Python + D3-style Explorer</p>
+          <h1>Molecular Trajectory Dashboard</h1>
+          <p class="hero-copy">
+            Interactive inspection of energies, forces, dipoles, NACRs, and dENACRs across
+            ground and excited-state surfaces.
+          </p>
+        </div>
+        <div class="hero-stats" id="summary-cards"></div>
+      </header>
+
+      <main class="content-shell">
+        <section class="panel-grid">
+        <article id="panel-energy-line" class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h2>Energy Trajectories</h2>
+              <p>Line plot over snapshot index.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="export-button" data-metric="energy" data-plot-type="line" data-format="png">PNG</button>
+              <button class="export-button" data-metric="energy" data-plot-type="line" data-format="pdf">PDF</button>
+            </div>
+          </div>
+          <div class="chart-stage">
+            <canvas id="energy-chart" class="plot-canvas"></canvas>
+            <div id="energy-crosshair" class="chart-crosshair" hidden></div>
+            <div id="energy-tooltip" class="chart-tooltip" hidden></div>
+          </div>
+          <p id="energy-meta" class="panel-meta"></p>
+        </article>
+
+        <article id="panel-energy-hist" class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h2>Energy Distribution</h2>
+              <p>Histogram comparison for the active snapshot window.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="export-button" data-metric="energy" data-plot-type="histogram" data-format="png">PNG</button>
+              <button class="export-button" data-metric="energy" data-plot-type="histogram" data-format="pdf">PDF</button>
+            </div>
+          </div>
+          <div class="chart-stage">
+            <canvas id="energy-hist-chart" class="plot-canvas"></canvas>
+            <div id="energy-hist-crosshair" class="chart-crosshair" hidden></div>
+            <div id="energy-hist-tooltip" class="chart-tooltip" hidden></div>
+          </div>
+          <p id="energy-hist-meta" class="panel-meta"></p>
+        </article>
+
+        <article id="panel-force" class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h2>Force Norms</h2>
+              <p>Global L2 norm on each potential energy surface.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="export-button" data-metric="force_norm" data-plot-type="line" data-format="png">PNG</button>
+              <button class="export-button" data-metric="force_norm" data-plot-type="line" data-format="pdf">PDF</button>
+            </div>
+          </div>
+          <div class="chart-stage">
+            <canvas id="force-chart" class="plot-canvas"></canvas>
+            <div id="force-crosshair" class="chart-crosshair" hidden></div>
+            <div id="force-tooltip" class="chart-tooltip" hidden></div>
+          </div>
+          <p id="force-meta" class="panel-meta"></p>
+        </article>
+
+        <article id="panel-dipole" class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h2>Dipole Magnitudes</h2>
+              <p>Vector magnitude for each state-resolved dipole moment.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="export-button" data-metric="dipole_magnitude" data-plot-type="line" data-format="png">PNG</button>
+              <button class="export-button" data-metric="dipole_magnitude" data-plot-type="line" data-format="pdf">PDF</button>
+            </div>
+          </div>
+          <div class="chart-stage">
+            <canvas id="dipole-chart" class="plot-canvas"></canvas>
+            <div id="dipole-crosshair" class="chart-crosshair" hidden></div>
+            <div id="dipole-tooltip" class="chart-tooltip" hidden></div>
+          </div>
+          <p id="dipole-meta" class="panel-meta"></p>
+        </article>
+
+        <article id="panel-nacr" class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h2>NACR Norms</h2>
+              <p>Raw non-adiabatic coupling vector norms for excited-state pairs.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="export-button" data-metric="nacr_norm" data-plot-type="line" data-format="png">PNG</button>
+              <button class="export-button" data-metric="nacr_norm" data-plot-type="line" data-format="pdf">PDF</button>
+            </div>
+          </div>
+          <div class="chart-stage">
+            <canvas id="nacr-chart" class="plot-canvas"></canvas>
+            <div id="nacr-crosshair" class="chart-crosshair" hidden></div>
+            <div id="nacr-tooltip" class="chart-tooltip" hidden></div>
+          </div>
+          <p id="nacr-meta" class="panel-meta"></p>
+        </article>
+
+        <article id="panel-denacr" class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h2>dENACR Norms</h2>
+              <p>Energy-gap-scaled coupling norms for excited-state pairs only.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="export-button" data-metric="denacr_norm" data-plot-type="line" data-format="png">PNG</button>
+              <button class="export-button" data-metric="denacr_norm" data-plot-type="line" data-format="pdf">PDF</button>
+            </div>
+          </div>
+          <div class="chart-stage">
+            <canvas id="denacr-chart" class="plot-canvas"></canvas>
+            <div id="denacr-crosshair" class="chart-crosshair" hidden></div>
+            <div id="denacr-tooltip" class="chart-tooltip" hidden></div>
+          </div>
+          <p id="denacr-meta" class="panel-meta"></p>
+        </article>
+        </section>
+
+        <aside class="control-panel">
+        <div id="snapshot-window-card" class="control-card">
+          <div class="section-head">
+            <h2>Snapshot Window</h2>
+            <p id="range-label">Loading trajectory range...</p>
+          </div>
+          <div class="slider-stack">
+            <label>
+              <span>Start snapshot</span>
+              <input id="range-start" type="range" min="0" value="0">
+            </label>
+            <label>
+              <span>End snapshot</span>
+              <input id="range-end" type="range" min="1" value="1">
+            </label>
+          </div>
+          <div class="control-actions">
+            <button id="reset-range" class="ghost-button">Full Trajectory</button>
+            <button id="sync-zoom" class="ghost-button" aria-pressed="false">Sync Zoom</button>
+            <button id="reset-zoom" class="ghost-button">Reset Zoom</button>
+            <div id="histogram-control" class="mini-control">
+              <label for="histogram-bins">Histogram bins</label>
+              <input id="histogram-bins" type="range" min="12" max="240" value="64">
+              <span id="histogram-bins-value">64</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="state-selection-card" class="control-card">
+          <div class="section-head">
+            <h2>State Selection</h2>
+            <p>Select the PES channels to overlay in the state-resolved panels.</p>
+          </div>
+          <div class="control-actions">
+            <button id="states-default" class="ghost-button">Defaults</button>
+            <button id="states-all" class="ghost-button">All States</button>
+          </div>
+          <div class="chip-grid" id="state-chips"></div>
+        </div>
+
+        <div id="coupling-selection-card" class="control-card">
+          <div class="section-head">
+            <h2>Coupling Selection</h2>
+            <p>Excited-state pair controls for NACR and dENACR panels.</p>
+          </div>
+          <div class="control-actions">
+            <button id="pairs-default" class="ghost-button">Defaults</button>
+            <button id="pairs-all" class="ghost-button">All Pairs</button>
+            <input id="pair-filter" class="filter-input" type="search" placeholder="Filter pairs, e.g. 1-3">
+          </div>
+          <div class="chip-grid coupling-grid" id="pair-chips"></div>
+        </div>
+
+        <div id="statistics-card" class="control-card stats-card">
+          <div class="section-head">
+            <h2>Statistical Analysis</h2>
+            <p>Exact windowed summaries for the current selections across every plotted metric.</p>
+          </div>
+          <div class="stats-scroll">
+            <div class="stats-legend">
+              <span class="stats-key"><span class="stats-swatch mean"></span>Mean</span>
+              <span class="stats-key"><span class="stats-swatch std"></span>Std</span>
+              <span class="stats-key"><span class="stats-swatch variance"></span>Variance</span>
+            </div>
+            <div class="chart-stage chart-stage-small">
+              <canvas id="stats-chart" class="plot-canvas plot-canvas-small"></canvas>
+            </div>
+            <div id="stats-grid" class="stats-grid"></div>
+            <p id="stats-meta" class="panel-meta"></p>
+          </div>
+        </div>
+        </aside>
+      </main>
+
+      <footer class="page-footer">
+        <p id="global-status">Initializing dashboard...</p>
+      </footer>
+    </div>
+  </body>
+</html>
