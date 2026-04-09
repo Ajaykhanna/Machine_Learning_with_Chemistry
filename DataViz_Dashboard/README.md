@@ -411,4 +411,5 @@ Before pushing to GitHub:
 
 ## License and Attribution
 
-Add your preferred project license and citation instructions here before publishing.
+This package is provided under the MIT License. It was developed by Ajay Khanna while working at LANL and is based on the requirements and design outlined in the original prompt.
+The dashboard uses D3.js for frontend interactivity, which is licensed under the BSD License.
