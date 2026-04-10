@@ -85,6 +85,7 @@ CACHE_BUILD_LOCK = threading.RLock()
 MISSING_OVERRIDE_WARNINGS: set[str] = set()
 MISSING_OVERRIDE_LOCK = threading.Lock()
 CACHE_PROGRESS: "CacheProgress | None" = None
+CACHE_METADATA_VERSION = 3
 
 
 def active_metrics() -> tuple[str, ...]:
@@ -323,6 +324,10 @@ def source_signature(path: Path) -> dict[str, Any]:
     return {"size": stat.st_size, "mtime": stat.st_mtime}
 
 
+def source_cache_descriptor(path: Path) -> dict[str, Any]:
+    return {"path": str(path.resolve()), **source_signature(path)}
+
+
 def format_pair_filename(label: str) -> str:
     left, right = label.split("-")
     return f"{left}{right}"
@@ -554,9 +559,45 @@ def raw_shape_summary(
     return summary
 
 
+def cache_input_summary(
+    enabled_metrics: tuple[str, ...],
+    state_ids: list[int],
+    pair_labels: list[str],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    metric_inputs: dict[str, Any] = {}
+    for metric in enabled_metrics:
+        combined_path = _load_existing_source_path(metric, config)
+        if combined_path is not None:
+            metric_inputs[metric] = {
+                "mode": "combined",
+                "source": source_cache_descriptor(combined_path),
+            }
+            continue
+
+        spec = metric_spec(metric, config)
+        identifiers = state_ids if spec["kind"] == "state" else pair_labels
+        metric_inputs[metric] = {
+            "mode": "fallback",
+            "files": [
+                {
+                    "id": str(identifier),
+                    "source": source_cache_descriptor(resolve_existing_fallback_file(metric, identifier, config)),
+                }
+                for identifier in identifiers
+            ],
+        }
+
+    return {
+        "enabled_metrics": list(enabled_metrics),
+        "metric_inputs": metric_inputs,
+    }
+
+
 def build_cache_metadata(metric_results: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
     state_ids = discover_state_ids(config)
     pair_labels = build_pair_labels(state_ids)
+    enabled_metrics = active_metrics()
     metrics_to_inspect = metadata_shape_metrics(metric_results)
     raw_shapes = raw_shape_summary(state_ids, pair_labels, config, metrics_to_inspect)
     colors = {
@@ -565,7 +606,7 @@ def build_cache_metadata(metric_results: list[dict[str, Any]], config: dict[str,
     }
 
     metadata = {
-        "version": 1,
+        "version": CACHE_METADATA_VERSION,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "state_ids": state_ids,
         "state_labels": [f"S{state_id}" for state_id in state_ids],
@@ -573,12 +614,13 @@ def build_cache_metadata(metric_results: list[dict[str, Any]], config: dict[str,
         "default_states": config["defaults"]["states"],
         "default_pairs": config["defaults"]["pairs"],
         "overview_levels": config["overview_levels"],
-        "enabled_metrics": list(active_metrics()),
+        "enabled_metrics": list(enabled_metrics),
         "units": config["units"],
         "colors": colors,
         "raw_shapes": raw_shapes,
         "snapshot_count": raw_shapes["energy"][0],
         "metrics": {item["metric"]: item for item in metric_results},
+        "cache_inputs": cache_input_summary(enabled_metrics, state_ids, pair_labels, config),
         "sources": {
             source_name_for_metric(metric, config): source_signature(_load_existing_source_path(metric, config))
             for metric in metrics_to_inspect
@@ -602,7 +644,15 @@ def rebuild_cache(rebuild: bool = False, workers: int | None = None) -> dict[str
             with metadata_path.open("r", encoding="utf-8") as handle:
                 cached_metadata = json.load(handle)
 
-            if "metrics" in cached_metadata and all(metric in cached_metadata["metrics"] for metric in enabled):
+            current_cache_inputs = cache_input_summary(enabled, state_ids, pair_labels, config)
+            cache_inputs_match = cached_metadata.get("cache_inputs") == current_cache_inputs
+
+            if (
+                cached_metadata.get("version") == CACHE_METADATA_VERSION
+                and cache_inputs_match
+                and "metrics" in cached_metadata
+                and all(metric in cached_metadata["metrics"] for metric in enabled)
+            ):
                 metric_results = [cached_metadata["metrics"][metric] for metric in enabled]
                 refreshed_metadata = build_cache_metadata(metric_results, config)
                 if refreshed_metadata != cached_metadata:
@@ -910,6 +960,10 @@ class DashboardStore:
         start = int(payload.get("start", 0))
         end = int(payload.get("end", self.metadata["snapshot_count"]))
         bins = int(payload.get("bins", self.config["defaults"]["histogram_bins"]))
+        x_min = payload.get("x_min")
+        x_max = payload.get("x_max")
+        y_min = payload.get("y_min")
+        y_max = payload.get("y_max")
         dpi = int(payload.get("dpi", self.config["export"]["dpi"]))
         figure_size = tuple(self.config["export"]["figure_size"])
         allowed_formats = dashboard_common.normalize_export_formats(self.config["export"].get("formats"))
@@ -934,6 +988,8 @@ class DashboardStore:
             ax.set_title("Energy Distribution")
             ax.set_ylabel("Count")
             ax.set_xlabel(axis_label_with_unit("Energy", self.metadata["units"]["energy"]))
+            if x_min is not None and x_max is not None:
+                ax.set_xlim(float(x_min), float(x_max))
         else:
             line_data = self.get_series_payload(metric=metric, ids=ids, start=start, end=end, width=2400)
             for series in line_data["series"]:
@@ -949,6 +1005,9 @@ class DashboardStore:
             ax.set_title(METRIC_SPECS[metric]["title"])
             ax.set_ylabel(axis_label_with_unit(spec["y_label"], self.metadata["units"][metric]))
             ax.set_xlabel("Snapshot index")
+
+        if y_min is not None and y_max is not None:
+            ax.set_ylim(float(y_min), float(y_max))
 
         ax.grid(False)
         ax.legend(frameon=False, loc="best", ncol=min(4, max(1, len(ax.lines) or len(ax.patches))))

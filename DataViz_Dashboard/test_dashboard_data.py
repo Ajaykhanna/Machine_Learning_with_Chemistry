@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import copy
+import gc
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 
+import dashboard_common
 from dashboard_common import configure_runtime
 configure_runtime(enabled_metrics=["energy", "force_norm", "dipole_magnitude", "nacr_norm", "denacr_norm"])
 
@@ -75,6 +80,55 @@ class DashboardDataTests(unittest.TestCase):
 
         nacr_stats = statistics["metrics"]["nacr_norm"]["aggregate"]
         self.assertGreater(nacr_stats["count"], 0)
+
+    def test_z_cache_rebuilds_when_energy_source_changes(self) -> None:
+        original_root = dashboard_common.ROOT
+        original_enabled = tuple(dashboard_common.ENABLED_METRICS)
+        original_output = dashboard_common.EXPORT_DIR
+        original_overrides = copy.deepcopy(dashboard_common.RUNTIME_CONFIG_OVERRIDES)
+        raw_store = None
+        shifted_store = None
+
+        with tempfile.TemporaryDirectory(
+            dir=Path(__file__).resolve().parent,
+            ignore_cleanup_errors=True,
+        ) as temp_dir_name:
+            temp_dir = Path(temp_dir_name)
+            raw = np.arange(20, dtype=np.float64).reshape(5, 4)
+            shifted = raw + 125.0
+            np.save(temp_dir / "acn_S.npy", raw)
+            np.save(temp_dir / "acn_sE.npy", shifted)
+
+            try:
+                configure_runtime(data_dir=temp_dir, enabled_metrics=["energy"])
+                raw_store = DashboardStore()
+                raw_cached = np.asarray(raw_store.get_metric_array("energy")).copy()
+                self.assertTrue(np.allclose(raw_cached, raw))
+                del raw_store
+                raw_store = None
+                gc.collect()
+
+                configure_runtime(
+                    data_dir=temp_dir,
+                    enabled_metrics=["energy"],
+                    runtime_overrides={"files": {"energy": {"source": "acn_sE.npy"}}},
+                )
+                shifted_store = DashboardStore()
+                shifted_cached = np.asarray(shifted_store.get_metric_array("energy")).copy()
+                self.assertTrue(np.allclose(shifted_cached, shifted))
+                self.assertTrue(
+                    shifted_store.metadata["cache_inputs"]["metric_inputs"]["energy"]["source"]["path"].endswith("acn_sE.npy")
+                )
+            finally:
+                configure_runtime(
+                    data_dir=original_root,
+                    enabled_metrics=list(original_enabled),
+                    output_dir=original_output,
+                    runtime_overrides=original_overrides,
+                )
+                del raw_store
+                del shifted_store
+                gc.collect()
 
 
 if __name__ == "__main__":

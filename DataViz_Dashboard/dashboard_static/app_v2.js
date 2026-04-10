@@ -65,6 +65,9 @@ const METRIC_AXIS_LABELS = {
 };
 const STATE_METRICS = new Set(["energy", "force_norm", "dipole_magnitude"]);
 const PAIR_METRICS = new Set(["nacr_norm", "denacr_norm"]);
+const AXIS_DRAG_BAND = 38;
+const AXIS_DRAG_CORNER_SIZE = 34;
+const AXIS_SCALE_SENSITIVITY = 160;
 
 const state = {
   meta: null,
@@ -114,12 +117,43 @@ function getVisibleLinePanelKeys() {
     .map(([panelKey]) => panelKey);
 }
 
-function applyLineZoomState(panelKey, zoom) {
-  if (!zoom) {
-    clearPanelZoom(panelKey);
+function getPanelZoomEntry(panelKey) {
+  return state.panelZooms[panelKey] || {};
+}
+
+function setPanelZoomEntry(panelKey, entry) {
+  const next = {};
+  if (entry.start != null && entry.end != null) {
+    next.start = entry.start;
+    next.end = entry.end;
+  }
+  if (entry.xMin != null && entry.xMax != null) {
+    next.xMin = entry.xMin;
+    next.xMax = entry.xMax;
+  }
+  if (entry.yMin != null && entry.yMax != null) {
+    next.yMin = entry.yMin;
+    next.yMax = entry.yMax;
+  }
+
+  if (Object.keys(next).length === 0) {
+    delete state.panelZooms[panelKey];
     return;
   }
-  state.panelZooms[panelKey] = { start: zoom.start, end: zoom.end };
+  state.panelZooms[panelKey] = next;
+}
+
+function applyLineZoomState(panelKey, zoom) {
+  const next = { ...getPanelZoomEntry(panelKey) };
+  if (!zoom) {
+    delete next.start;
+    delete next.end;
+    setPanelZoomEntry(panelKey, next);
+    return;
+  }
+  next.start = zoom.start;
+  next.end = zoom.end;
+  setPanelZoomEntry(panelKey, next);
 }
 
 function getPreferredSyncedLineZoom() {
@@ -175,6 +209,77 @@ function updateSyncZoomButton() {
   }
   button.classList.toggle("is-active", state.isSyncZoom);
   button.setAttribute("aria-pressed", String(state.isSyncZoom));
+}
+
+function getPanelKeyForMetric(metric, plotType) {
+  const entry = Object.entries(PANEL_CONFIG).find(([, panel]) => panel.metric === metric && panel.type === plotType);
+  return entry ? entry[0] : null;
+}
+
+function getLineYDomain(panelKey, rawDomain) {
+  const zoom = getPanelZoomEntry(panelKey);
+  if (zoom.yMin == null || zoom.yMax == null) {
+    return rawDomain;
+  }
+  const normalized = normalizeUnboundedDomain([zoom.yMin, zoom.yMax], rawDomain);
+  return normalized || rawDomain;
+}
+
+function getHistogramYDomain(panelKey, rawDomain) {
+  const zoom = getPanelZoomEntry(panelKey);
+  if (zoom.yMin == null || zoom.yMax == null) {
+    return rawDomain;
+  }
+  const normalized = normalizeHistogramYDomain([zoom.yMin, zoom.yMax], rawDomain);
+  return normalized || rawDomain;
+}
+
+function clearPanelXZoom(panelKey) {
+  const next = { ...getPanelZoomEntry(panelKey) };
+  delete next.start;
+  delete next.end;
+  delete next.xMin;
+  delete next.xMax;
+  setPanelZoomEntry(panelKey, next);
+}
+
+function clearPanelYZoom(panelKey) {
+  const next = { ...getPanelZoomEntry(panelKey) };
+  delete next.yMin;
+  delete next.yMax;
+  setPanelZoomEntry(panelKey, next);
+}
+
+function clearPanelView(panelKey, syncLineX = false) {
+  const panel = PANEL_CONFIG[panelKey];
+  if (!panel) {
+    return;
+  }
+
+  if (panel.type === "line" && syncLineX) {
+    getVisibleLinePanelKeys().forEach((visiblePanelKey) => clearPanelXZoom(visiblePanelKey));
+  } else {
+    clearPanelXZoom(panelKey);
+  }
+  clearPanelYZoom(panelKey);
+}
+
+function getPanelExportLimits(panelKey) {
+  if (!panelKey) {
+    return {};
+  }
+  const panel = PANEL_CONFIG[panelKey];
+  const zoom = getPanelZoomEntry(panelKey);
+  const limits = {};
+  if (zoom.yMin != null && zoom.yMax != null) {
+    limits.y_min = zoom.yMin;
+    limits.y_max = zoom.yMax;
+  }
+  if (panel && panel.type === "histogram" && zoom.xMin != null && zoom.xMax != null) {
+    limits.x_min = zoom.xMin;
+    limits.x_max = zoom.xMax;
+  }
+  return limits;
 }
 
 function applyEnabledLayout() {
@@ -321,6 +426,7 @@ function mountExportButtons() {
       const exportWindow = plotType === "histogram"
         ? { start: state.start, end: state.end }
         : getLineWindowByMetric(metric);
+      const exportLimits = getPanelExportLimits(getPanelKeyForMetric(metric, plotType));
 
       setStatus(`Exporting ${metric} as ${format.toUpperCase()}...`);
       const response = await fetchJSON("/api/export", {
@@ -333,7 +439,8 @@ function mountExportButtons() {
           ids,
           start: exportWindow.start,
           end: exportWindow.end,
-          bins: state.histogramBins
+          bins: state.histogramBins,
+          ...exportLimits
         })
       });
 
@@ -418,7 +525,7 @@ async function renderAll() {
   setStatus(
     `Showing snapshots <strong>${formatInt(state.start)}</strong> to <strong>${formatInt(state.end - 1)}</strong> with ` +
     `<strong>${state.selectedStates.size}</strong> states and <strong>${state.selectedPairs.size}</strong> excited-state pairs selected. ` +
-    `Use the mouse wheel to zoom, drag across a region to crop, double-click a plot to reset one panel, or use Reset Zoom for all plots.` +
+    `Use the mouse wheel to zoom, drag across a region to crop, drag an axis to scale one panel, double-click the plot body to reset a panel, or use Reset Zoom for all plots.` +
     (state.isSyncZoom ? ` <strong>Sync Zoom</strong> is active for all visible snapshot-index plots.` : "")
   );
 }
@@ -493,7 +600,8 @@ function drawLinePanel(panel, payload) {
   const margins = { top: 26, right: 20, bottom: 48, left: 82 };
   const plotWidth = width - margins.left - margins.right;
   const plotHeight = height - margins.top - margins.bottom;
-  const yDomain = computeLineYDomain(payload.series);
+  const rawYDomain = computeLineYDomain(payload.series);
+  const yDomain = getLineYDomain(panel.key, rawYDomain);
   const xScale = d3.scaleLinear().domain([payload.start, payload.end - 1]).range([margins.left, margins.left + plotWidth]);
   const yScale = d3.scaleLinear().domain(yDomain).range([margins.top + plotHeight, margins.top]);
 
@@ -539,13 +647,17 @@ function drawLinePanel(panel, payload) {
     unitLabel: formatBracketUnit(payload.units),
     xScale,
     yScale,
+    rawYDomain,
     margins,
     plotWidth,
     plotHeight,
+    width,
+    height,
     tooltip,
     crosshair,
     selectionOverlay
   };
+  canvas.style.cursor = "crosshair";
   bindChartInteractions(canvas);
 }
 
@@ -562,8 +674,10 @@ function drawHistogramPanel(panel, payload) {
   const xMax = Math.max(...payload.series.map((series) => series.edges[series.edges.length - 1]));
   const xDomain = getHistogramZoomDomain(panel.key, xMin, xMax);
   const yMax = computeHistogramVisibleYMax(payload.series, xDomain);
+  const rawYDomain = [0, yMax * 1.08 || 1];
+  const yDomain = getHistogramYDomain(panel.key, rawYDomain);
   const xScale = d3.scaleLinear().domain(xDomain).range([margins.left, margins.left + plotWidth]);
-  const yScale = d3.scaleLinear().domain([0, yMax * 1.08 || 1]).range([margins.top + plotHeight, margins.top]);
+  const yScale = d3.scaleLinear().domain(yDomain).range([margins.top + plotHeight, margins.top]);
 
   ctx.clearRect(0, 0, width, height);
   drawPlotBackground(ctx, width, height, margins, plotWidth, plotHeight);
@@ -621,8 +735,12 @@ function drawHistogramPanel(panel, payload) {
     tooltip,
     crosshair,
     selectionOverlay,
-    rawXDomain: [xMin, xMax]
+    rawXDomain: [xMin, xMax],
+    rawYDomain,
+    width,
+    height
   };
+  canvas.style.cursor = "crosshair";
   bindChartInteractions(canvas);
 }
 
@@ -835,8 +953,14 @@ function bindChartInteractions(canvas) {
 
   const interaction = {
     dragging: false,
+    mode: null,
+    zone: "none",
     startX: 0,
     currentX: 0,
+    startY: 0,
+    currentY: 0,
+    anchorValue: null,
+    initialDomain: null,
     selection: getOrCreateSelection(canvas)
   };
   canvas.__interaction = interaction;
@@ -847,12 +971,18 @@ function bindChartInteractions(canvas) {
 
     const [mx, my] = d3.pointer(event, canvas);
     if (interaction.dragging) {
-      updateSelectionBox(model, interaction.startX, clamp(mx, model.margins.left, model.margins.left + model.plotWidth));
+      updateCanvasCursor(canvas, model, interaction.mode);
+      if (interaction.mode === "crop") {
+        updateSelectionBox(model, interaction.startX, clamp(mx, model.margins.left, model.margins.left + model.plotWidth));
+      }
       hideTooltip(model);
       return;
     }
 
-    if (!isInsidePlot(model, mx, my)) {
+    const zone = getPointerZone(model, mx, my);
+    updateCanvasCursor(canvas, model, zone);
+
+    if (zone !== "plot") {
       hideTooltip(model);
       return;
     }
@@ -874,15 +1004,34 @@ function bindChartInteractions(canvas) {
     }
 
     const [mx, my] = d3.pointer(event, canvas);
-    if (!isInsidePlot(model, mx, my)) {
+    const zone = getPointerZone(model, mx, my);
+    if (zone === "none") {
       return;
     }
 
+    interaction.zone = zone;
     interaction.dragging = true;
-    interaction.startX = clamp(mx, model.margins.left, model.margins.left + model.plotWidth);
-    interaction.currentX = interaction.startX;
-    updateSelectionBox(model, interaction.startX, interaction.currentX);
+    interaction.mode = zone === "plot" ? "crop" : (zone === "x-axis" ? "scale-x" : "scale-y");
+    interaction.startX = mx;
+    interaction.currentX = mx;
+    interaction.startY = my;
+    interaction.currentY = my;
+    interaction.initialDomain = interaction.mode === "scale-y"
+      ? model.yScale.domain().slice()
+      : (model.kind === "line" ? [model.payload.start, model.payload.end] : model.xScale.domain().slice());
+    interaction.anchorValue = interaction.mode === "scale-y"
+      ? model.yScale.invert(clamp(my, model.margins.top, model.margins.top + model.plotHeight))
+      : model.xScale.invert(clamp(mx, model.margins.left, model.margins.left + model.plotWidth));
+
+    if (interaction.mode === "crop") {
+      interaction.startX = clamp(mx, model.margins.left, model.margins.left + model.plotWidth);
+      interaction.currentX = interaction.startX;
+      updateSelectionBox(model, interaction.startX, interaction.currentX);
+    } else {
+      hideSelectionBox(interaction);
+    }
     hideTooltip(model);
+    updateCanvasCursor(canvas, model, interaction.mode);
     event.preventDefault();
   });
 
@@ -896,8 +1045,12 @@ function bindChartInteractions(canvas) {
     }
 
     const rect = canvas.getBoundingClientRect();
-    interaction.currentX = clamp(event.clientX - rect.left, model.margins.left, model.margins.left + model.plotWidth);
-    updateSelectionBox(model, interaction.startX, interaction.currentX);
+    interaction.currentX = event.clientX - rect.left;
+    interaction.currentY = event.clientY - rect.top;
+    if (interaction.mode === "crop") {
+      interaction.currentX = clamp(interaction.currentX, model.margins.left, model.margins.left + model.plotWidth);
+      updateSelectionBox(model, interaction.startX, interaction.currentX);
+    }
   });
 
   window.addEventListener("mouseup", async () => {
@@ -906,12 +1059,36 @@ function bindChartInteractions(canvas) {
     }
     const model = canvas.__chartModel;
     const width = Math.abs(interaction.currentX - interaction.startX);
+    const height = Math.abs(interaction.currentY - interaction.startY);
+    const mode = interaction.mode;
     interaction.dragging = false;
+    interaction.mode = null;
+    interaction.zone = "none";
     hideSelectionBox(interaction);
-    if (!model || width < 12) {
+    updateCanvasCursor(canvas, model, "none");
+    if (!model) {
       return;
     }
-    await applyBrushZoom(model, interaction.startX, interaction.currentX);
+    if (mode === "crop") {
+      if (width < 12) {
+        return;
+      }
+      await applyBrushZoom(model, interaction.startX, interaction.currentX);
+      return;
+    }
+    if (mode === "scale-x") {
+      if (width < 6) {
+        return;
+      }
+      await applyAxisScale(model, "x", interaction);
+      return;
+    }
+    if (mode === "scale-y") {
+      if (height < 6) {
+        return;
+      }
+      await applyAxisScale(model, "y", interaction);
+    }
   });
 
   canvas.addEventListener("mouseleave", () => {
@@ -919,19 +1096,38 @@ function bindChartInteractions(canvas) {
     if (model && !interaction.dragging) {
       hideTooltip(model);
     }
+    if (!interaction.dragging) {
+      canvas.style.cursor = "default";
+    }
   });
 
-  canvas.addEventListener("dblclick", async () => {
+  canvas.addEventListener("dblclick", async (event) => {
     const model = canvas.__chartModel;
     if (!model) {
       return;
     }
+    const [mx, my] = d3.pointer(event, canvas);
+    const zone = getPointerZone(model, mx, my);
+
+    if (zone === "x-axis") {
+      await resetPanelXAxis(model);
+      return;
+    }
+    if (zone === "y-axis") {
+      clearPanelYZoom(model.panelKey);
+      await renderPanelByKey(model.panelKey);
+      return;
+    }
+    if (zone !== "plot") {
+      return;
+    }
+
     if (model.kind === "line") {
-      setLineZoomFromInteraction(model.panelKey, null);
+      clearPanelView(model.panelKey, state.isSyncZoom);
       await renderAfterLineZoom(model.panelKey);
       return;
     }
-    clearPanelZoom(model.panelKey);
+    clearPanelView(model.panelKey, false);
     await renderPanelByKey(model.panelKey);
   });
 
@@ -941,7 +1137,7 @@ function bindChartInteractions(canvas) {
       return;
     }
     const [mx, my] = d3.pointer(event, canvas);
-    if (!isInsidePlot(model, mx, my)) {
+    if (getPointerZone(model, mx, my) !== "plot") {
       return;
     }
     event.preventDefault();
@@ -953,6 +1149,50 @@ function bindChartInteractions(canvas) {
   }, { passive: false });
 
   canvas.dataset.hoverBound = "true";
+}
+
+function getPointerZone(model, mx, my) {
+  const axisBottom = model.margins.top + model.plotHeight;
+  const axisRight = model.margins.left + model.plotWidth;
+  const xAxisTop = axisBottom;
+  const xAxisBottom = Math.min(model.height, axisBottom + AXIS_DRAG_BAND);
+  const yAxisLeft = Math.max(0, model.margins.left - AXIS_DRAG_BAND);
+  const yAxisRight = model.margins.left;
+
+  if (isInsidePlot(model, mx, my)) {
+    return "plot";
+  }
+  if (
+    mx >= yAxisLeft &&
+    mx <= yAxisRight &&
+    my >= xAxisTop &&
+    my <= Math.min(model.height, xAxisBottom + AXIS_DRAG_CORNER_SIZE)
+  ) {
+    return "none";
+  }
+  if (mx >= model.margins.left + AXIS_DRAG_CORNER_SIZE && mx <= axisRight && my >= xAxisTop && my <= xAxisBottom) {
+    return "x-axis";
+  }
+  if (mx >= yAxisLeft && mx <= yAxisRight && my >= model.margins.top && my <= axisBottom - AXIS_DRAG_CORNER_SIZE) {
+    return "y-axis";
+  }
+  return "none";
+}
+
+function updateCanvasCursor(canvas, model, zone) {
+  if (!model) {
+    canvas.style.cursor = "default";
+    return;
+  }
+  if (zone === "scale-x" || zone === "x-axis") {
+    canvas.style.cursor = "ew-resize";
+    return;
+  }
+  if (zone === "scale-y" || zone === "y-axis") {
+    canvas.style.cursor = "ns-resize";
+    return;
+  }
+  canvas.style.cursor = zone === "plot" || zone === "crop" ? "crosshair" : "default";
 }
 
 function isInsidePlot(model, mx, my) {
@@ -990,6 +1230,32 @@ function hideSelectionBox(interaction) {
   interaction.selection.style.width = "0px";
 }
 
+async function resetPanelXAxis(model) {
+  if (model.kind === "line") {
+    if (state.isSyncZoom) {
+      setLineZoomFromInteraction(model.panelKey, null);
+    } else {
+      applyLineZoomState(model.panelKey, null);
+    }
+    await renderAfterLineZoom(model.panelKey);
+    return;
+  }
+  clearPanelXZoom(model.panelKey);
+  await renderPanelByKey(model.panelKey);
+}
+
+async function applyAxisScale(model, axis, interaction) {
+  if (axis === "x") {
+    if (model.kind === "line") {
+      await applyLineAxisScale(model, interaction);
+      return;
+    }
+    await applyHistogramAxisScale(model, interaction);
+    return;
+  }
+  await applyYAxisScale(model, interaction);
+}
+
 async function applyBrushZoom(model, x0, x1) {
   const left = Math.min(x0, x1);
   const right = Math.max(x0, x1);
@@ -1004,9 +1270,13 @@ async function applyBrushZoom(model, x0, x1) {
     const nextMin = Math.max(model.rawXDomain[0], Math.min(model.xScale.invert(left), model.xScale.invert(right)));
     const nextMax = Math.min(model.rawXDomain[1], Math.max(model.xScale.invert(left), model.xScale.invert(right)));
     if (nextMax - nextMin <= 1e-9) {
-      clearPanelZoom(model.panelKey);
+      clearPanelXZoom(model.panelKey);
     } else {
-      state.panelZooms[model.panelKey] = { xMin: nextMin, xMax: nextMax };
+      setPanelZoomEntry(model.panelKey, {
+        ...getPanelZoomEntry(model.panelKey),
+        xMin: nextMin,
+        xMax: nextMax,
+      });
     }
   }
 
@@ -1058,7 +1328,7 @@ async function applyHistogramWheelZoom(model, mx, deltaY) {
   const nextSpan = clamp(currentSpan * factor, rawSpan * 0.01, rawSpan);
 
   if (nextSpan >= rawSpan * 0.995) {
-    clearPanelZoom(model.panelKey);
+    clearPanelXZoom(model.panelKey);
     await renderPanelByKey(model.panelKey);
     return;
   }
@@ -1077,8 +1347,151 @@ async function applyHistogramWheelZoom(model, mx, deltaY) {
     nextMin = nextMax - nextSpan;
   }
 
-  state.panelZooms[model.panelKey] = { xMin: nextMin, xMax: nextMax };
+  setPanelZoomEntry(model.panelKey, {
+    ...getPanelZoomEntry(model.panelKey),
+    xMin: nextMin,
+    xMax: nextMax,
+  });
   await renderPanelByKey(model.panelKey);
+}
+
+async function applyLineAxisScale(model, interaction) {
+  const deltaX = interaction.currentX - interaction.startX;
+  const factor = getAxisScaleFactor(deltaX, "x");
+  const domain = scaleDomainAroundAnchor(interaction.initialDomain, interaction.anchorValue, factor);
+  const zoom = getClampedLineZoom(domain[0], domain[1]);
+  setLineZoomFromInteraction(model.panelKey, zoom);
+  await renderAfterLineZoom(model.panelKey);
+}
+
+async function applyHistogramAxisScale(model, interaction) {
+  const deltaX = interaction.currentX - interaction.startX;
+  const factor = getAxisScaleFactor(deltaX, "x");
+  const domain = scaleDomainAroundAnchor(interaction.initialDomain, interaction.anchorValue, factor);
+  const nextDomain = normalizeBoundedDomain(domain, model.rawXDomain, model.rawXDomain);
+  const next = { ...getPanelZoomEntry(model.panelKey) };
+  if (!nextDomain) {
+    delete next.xMin;
+    delete next.xMax;
+  } else {
+    next.xMin = nextDomain[0];
+    next.xMax = nextDomain[1];
+  }
+  setPanelZoomEntry(model.panelKey, next);
+  await renderPanelByKey(model.panelKey);
+}
+
+async function applyYAxisScale(model, interaction) {
+  const deltaY = interaction.currentY - interaction.startY;
+  const factor = getAxisScaleFactor(deltaY, "y");
+  const domain = scaleDomainAroundAnchor(interaction.initialDomain, interaction.anchorValue, factor);
+  const normalized = model.kind === "line"
+    ? normalizeUnboundedDomain(domain, model.rawYDomain)
+    : normalizeHistogramYDomain(domain, model.rawYDomain);
+  const next = { ...getPanelZoomEntry(model.panelKey) };
+  if (!normalized) {
+    delete next.yMin;
+    delete next.yMax;
+  } else {
+    next.yMin = normalized[0];
+    next.yMax = normalized[1];
+  }
+  setPanelZoomEntry(model.panelKey, next);
+  await renderPanelByKey(model.panelKey);
+}
+
+function getAxisScaleFactor(deltaPixels, axis) {
+  const signedDelta = axis === "x" ? -deltaPixels : deltaPixels;
+  return clamp(Math.exp(signedDelta / AXIS_SCALE_SENSITIVITY), 0.05, 20);
+}
+
+function scaleDomainAroundAnchor(currentDomain, anchor, factor) {
+  const [currentMin, currentMax] = currentDomain;
+  const leftSpan = anchor - currentMin;
+  const rightSpan = currentMax - anchor;
+  return [
+    anchor - leftSpan * factor,
+    anchor + rightSpan * factor,
+  ];
+}
+
+function getMinimumDomainSpan(rawDomain) {
+  const span = Math.abs(rawDomain[1] - rawDomain[0]);
+  return Math.max(span * 1e-4, 1e-9);
+}
+
+function normalizeUnboundedDomain(domain, rawDomain) {
+  let [nextMin, nextMax] = domain;
+  if (!Number.isFinite(nextMin) || !Number.isFinite(nextMax)) {
+    return null;
+  }
+  if (nextMax < nextMin) {
+    [nextMin, nextMax] = [nextMax, nextMin];
+  }
+  const minSpan = getMinimumDomainSpan(rawDomain);
+  if (nextMax - nextMin < minSpan) {
+    const center = (nextMin + nextMax) / 2;
+    nextMin = center - minSpan / 2;
+    nextMax = center + minSpan / 2;
+  }
+  return nextMax > nextMin ? [nextMin, nextMax] : null;
+}
+
+function normalizeHistogramYDomain(domain, rawDomain) {
+  const normalized = normalizeUnboundedDomain(domain, rawDomain);
+  if (!normalized) {
+    return null;
+  }
+  let [nextMin, nextMax] = normalized;
+  if (nextMax <= 0) {
+    return null;
+  }
+  if (nextMin < 0) {
+    nextMin = 0;
+  }
+  const minSpan = getMinimumDomainSpan(rawDomain);
+  if (nextMax - nextMin < minSpan) {
+    nextMax = nextMin + minSpan;
+  }
+  return nextMax > nextMin ? [nextMin, nextMax] : null;
+}
+
+function normalizeBoundedDomain(domain, bounds, rawDomain) {
+  let [nextMin, nextMax] = domain;
+  const [boundMin, boundMax] = bounds;
+  if (!Number.isFinite(nextMin) || !Number.isFinite(nextMax)) {
+    return null;
+  }
+  if (nextMax < nextMin) {
+    [nextMin, nextMax] = [nextMax, nextMin];
+  }
+
+  const boundSpan = boundMax - boundMin;
+  const minSpan = getMinimumDomainSpan(rawDomain);
+  if (nextMax - nextMin < minSpan) {
+    const center = clamp((nextMin + nextMax) / 2, boundMin + minSpan / 2, boundMax - minSpan / 2);
+    nextMin = center - minSpan / 2;
+    nextMax = center + minSpan / 2;
+  }
+
+  if (nextMin < boundMin) {
+    nextMax += boundMin - nextMin;
+    nextMin = boundMin;
+  }
+  if (nextMax > boundMax) {
+    nextMin -= nextMax - boundMax;
+    nextMax = boundMax;
+  }
+
+  nextMin = Math.max(boundMin, nextMin);
+  nextMax = Math.min(boundMax, nextMax);
+  if (nextMax - nextMin >= boundSpan * 0.9995) {
+    return null;
+  }
+  if (nextMax - nextMin < minSpan) {
+    return null;
+  }
+  return [nextMin, nextMax];
 }
 
 function getClampedLineZoom(start, end) {
@@ -1091,7 +1504,7 @@ function getClampedLineZoom(start, end) {
 }
 
 function getLineWindow(panelKey) {
-  const zoom = state.panelZooms[panelKey];
+  const zoom = getPanelZoomEntry(panelKey);
   if (!zoom || zoom.start == null || zoom.end == null) {
     return { start: state.start, end: state.end };
   }
@@ -1104,14 +1517,14 @@ function getLineWindowByMetric(metric) {
 }
 
 function getHistogramZoomDomain(panelKey, rawMin, rawMax) {
-  const zoom = state.panelZooms[panelKey];
+  const zoom = getPanelZoomEntry(panelKey);
   if (!zoom || zoom.xMin == null || zoom.xMax == null) {
     return [rawMin, rawMax];
   }
   const nextMin = Math.max(rawMin, Math.min(zoom.xMin, rawMax));
   const nextMax = Math.min(rawMax, Math.max(zoom.xMax, rawMin));
   if (nextMax - nextMin <= 1e-9) {
-    clearPanelZoom(panelKey);
+    clearPanelXZoom(panelKey);
     return [rawMin, rawMax];
   }
   return [nextMin, nextMax];
@@ -1124,14 +1537,33 @@ function clampPanelZooms() {
       delete state.panelZooms[panelKey];
       return;
     }
+    const zoom = { ...getPanelZoomEntry(panelKey) };
     if (panel.type === "line") {
-      const zoom = getClampedLineZoom(state.panelZooms[panelKey].start, state.panelZooms[panelKey].end);
-      if (!zoom) {
-        delete state.panelZooms[panelKey];
-      } else {
-        state.panelZooms[panelKey] = zoom;
+      if (zoom.start != null && zoom.end != null) {
+        const nextLineZoom = getClampedLineZoom(zoom.start, zoom.end);
+        if (!nextLineZoom) {
+          delete zoom.start;
+          delete zoom.end;
+        } else {
+          zoom.start = nextLineZoom.start;
+          zoom.end = nextLineZoom.end;
+        }
       }
+    } else if (
+      zoom.xMin != null && zoom.xMax != null &&
+      (!Number.isFinite(zoom.xMin) || !Number.isFinite(zoom.xMax) || zoom.xMax <= zoom.xMin)
+    ) {
+      delete zoom.xMin;
+      delete zoom.xMax;
     }
+    if (
+      zoom.yMin != null && zoom.yMax != null &&
+      (!Number.isFinite(zoom.yMin) || !Number.isFinite(zoom.yMax) || zoom.yMax <= zoom.yMin)
+    ) {
+      delete zoom.yMin;
+      delete zoom.yMax;
+    }
+    setPanelZoomEntry(panelKey, zoom);
   });
   synchronizeVisibleLineZooms();
 }
@@ -1141,12 +1573,27 @@ function clearPanelZoom(panelKey) {
 }
 
 function buildLineMetaText(panelKey, payload) {
-  const zoomTag = state.panelZooms[panelKey] ? "zoomed view" : "full active window";
-  return `${payload.series.length} trajectories | ${formatInt(payload.end - payload.start)} snapshots in view | ${zoomTag}`;
+  const zoom = getPanelZoomEntry(panelKey);
+  const tags = [];
+  if (zoom.start != null && zoom.end != null) {
+    tags.push("X zoomed");
+  }
+  if (zoom.yMin != null && zoom.yMax != null) {
+    tags.push("Y scaled");
+  }
+  return `${payload.series.length} trajectories | ${formatInt(payload.end - payload.start)} snapshots in view | ${tags.join(" + ") || "full active window"}`;
 }
 
 function buildHistogramMetaText(panelKey, payload) {
-  return `${payload.series.length} distributions | ${payload.bins} bins | ${state.panelZooms[panelKey] ? "zoomed energy range" : "full energy range"}`;
+  const zoom = getPanelZoomEntry(panelKey);
+  const tags = [];
+  if (zoom.xMin != null && zoom.xMax != null) {
+    tags.push("X scaled");
+  }
+  if (zoom.yMin != null && zoom.yMax != null) {
+    tags.push("Y scaled");
+  }
+  return `${payload.series.length} distributions | ${payload.bins} bins | ${tags.join(" + ") || "full energy range"}`;
 }
 
 function handleLineHover(model, mx, event) {
