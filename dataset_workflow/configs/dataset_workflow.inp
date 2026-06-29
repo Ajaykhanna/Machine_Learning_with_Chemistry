@@ -1,0 +1,205 @@
+﻿# dataset_workflow.inp
+# Configuration file for dataset_workflow.py.
+# Lines beginning with # are ignored. Keys are case-insensitive and should use
+# normalized snake_case. Values use KEY = VALUE syntax. Boolean values should be
+# written as true or false. Comma-separated values are parsed as lists unless
+# the value is quoted. Molecules can be supplied as a dictionary block.
+
+# -----------------------------------------------------------------------------
+# Molecule inputs
+# -----------------------------------------------------------------------------
+# Each molecule directory must contain an unoptimized geometry named unopt.xyz.
+# The workflow prints the number of molecules found and creates an independent
+# molecule-local workflow for each entry.
+Molecule = {
+    Nilered: "example/Nilered"
+    Prodan: "example/Prodan"
+}
+
+# Prefix controls output filenames such as prodan_R.npy and prodan_sE.npy.
+# If omitted, each molecule defaults to the lowercase molecule key.
+# PREFIX = prodan
+
+# -----------------------------------------------------------------------------
+# Execution mode and global logic flags
+# -----------------------------------------------------------------------------
+# MODE = Test uses short smoke-test settings. MODE = Production uses production
+# sampling defaults unless explicitly overridden below.
+MODE = Test
+SUBMIT_JOBS = false
+MONITOR_JOBS = true
+CONTINUE = false
+OVERWRITE = false
+MAX_PARALLEL_MOLECULES = 2
+
+# If all RUN_* values are false, the workflow defaults to Gaussian preparation:
+# Gaussian GS optimization followed by Gaussian excited-state SP/screening.
+RUN_GAUSSIAN_GSOPT = false
+RUN_GAUSSIAN_EXSP = false
+RUN_NEXMD_OPT = false
+RUN_NEXMD_GSDYN = false
+RUN_EXTRACT_FRAMES = false
+RUN_PREPARE_FRAMES = false
+RUN_PYSEQM_BATCH_EXSP = false
+RUN_PYSEQM_OPT = false
+RUN_QCHEM_GSOPT = false
+RUN_QCHEM_BATCH_EXSP = false
+RUN_QCHEM_COLLECT = false
+RUN_GENERATE_DATASET = false
+
+# -----------------------------------------------------------------------------
+# Paths and identifiers
+# -----------------------------------------------------------------------------
+DATA_DIR = ./
+OUTPUT_DIR = ./
+REFERENCE_FILE = ./reference/README.txt
+# DATASET_OUTPUT_DIR can be absolute or relative to the package root.
+# If omitted, each molecule writes final arrays to <mol_dir>/dataset.
+# DATASET_OUTPUT_DIR = ./example/Prodan/dataset
+
+# -----------------------------------------------------------------------------
+# SLURM and environment settings
+# -----------------------------------------------------------------------------
+# Workflow controller jobs default to general so they do not occupy scarce
+# compute partitions while waiting for child jobs. DEFAULT_PARTITION controls
+# CPU compute work (Gaussian/NEXMD/frame/dataset). GPU_PARTITION controls
+# PySEQM GPU work. Node-specific constraints are intentionally excluded.
+WRAPPER_PARTITION = general
+DEFAULT_PARTITION = general
+GPU_PARTITION = ml4chem
+GPU_GRES = gpu:4
+PYSEQM_DEVICE = auto
+PYSEQM_CPUS = 8
+PYSEQM_MEM = 5G
+PYSEQM_OPT_CPUS = 8
+PYSEQM_OPT_MEM = 5G
+
+# Select pyseqm for the original Gaussian/NEXMD/PySEQM route or qchem for
+# Q-Chem DFT/TDA quantum calculations with NEXMD dynamics.
+QUANTUM_BACKEND = pyseqm
+POLL_SECONDS = 60
+CONDA_ENV = ml_env
+PYTHON_BIN = /usr/projects/ml4chem/akhanna2/softwares/envs/ml_env/bin/python
+PYSEQM_PYTHON_BIN = /usr/projects/ml4chem/akhanna2/softwares/envs/ml_env/bin/python
+
+# Optional executable and library paths. These values can also be overridden
+# from the command line with --gaussian-root, --nexmd-exe, --pyseqm-root, etc.
+GAUSSIAN_ROOT = /usr/projects/cint/Gaussian/g16A03
+GAUSSIAN_EXE = g16
+GAUSSIAN_LIBRARY_PATH =
+GAUSSIAN_SCRATCH_ROOT = /tmp/akhanna2/GAUSSIAN_SCR
+NEXMD_ROOT =
+NEXMD_EXE = /usr/projects/ml4chem/akhanna2/softwares/NEXMD/nexmd.exe
+NEXMD_LIBRARY_PATH =
+PYSEQM_ROOT =
+PYSEQM_LIBRARY_PATH =
+CUDA_PATH = /usr/local/cuda
+
+# -----------------------------------------------------------------------------
+# Gaussian screening defaults
+# -----------------------------------------------------------------------------
+GAUSSIAN_GS_LOT = B3LYP/6-31G(d)
+GAUSSIAN_EX_LOT = TDA/CAM-B3LYP/6-31G(d)
+GAUSSIAN_NSTATES = 10
+GAUSSIAN_MEM_GB = 100
+GAUSSIAN_CPUS = 16
+GAUSSIAN_WALLTIME = 05:00:00
+GAUSSIAN_GSOPT_OUTPUT = {prefix}_gsopt.log
+GAUSSIAN_EXSP_OUTPUT = {prefix}_exsp.log
+
+# -----------------------------------------------------------------------------
+# Screening ranking thresholds
+# -----------------------------------------------------------------------------
+# These values rank molecules in screening_summary.csv. They do not automatically
+# approve molecules for production. User approval remains a manual gate.
+MINIMUM_STATES = 5
+OSCILLATOR_BRIGHT_THRESHOLD = 0.10
+OSCILLATOR_DARK_THRESHOLD = 0.05
+EXCITATION_ENERGY_THRESHOLD_EV = 0.50
+
+# -----------------------------------------------------------------------------
+# NEXMD AM1 optimization and ground-state dynamics
+# -----------------------------------------------------------------------------
+NEXMD_METHOD = AM1
+NEXMD_N_CLASS_STEPS_TEST = 10000
+NEXMD_N_CLASS_STEPS_PRODUCTION = 5000000
+NEXMD_TIME_STEP = 0.1
+NEXMD_OUT_COORDS_STEPS = 100
+INITIAL_VELOCITIES = zero
+# INITIAL_VELOCITIES_FILE = ./velocities.npy
+
+# -----------------------------------------------------------------------------
+# Frame extraction controls
+# -----------------------------------------------------------------------------
+# These mirror scripts/02_extract_md_frames.py. Test mode defaults produce 101
+# frames for the 10K-step dynamics smoke test. Production defaults target 50K
+# configurations after equilibration.
+FRAME_START_TEST = 1
+FRAME_STOP_TEST = 101
+FRAME_START_PRODUCTION = 5000
+FRAME_STOP_PRODUCTION = 55001
+FRAME_STEP = 1
+FRAME_WORKERS = 8
+FULL_VALIDATION = false
+VALIDATION_SAMPLES = 10
+NO_VALIDATION = false
+
+# -----------------------------------------------------------------------------
+# PySEQM electronic-structure settings
+# -----------------------------------------------------------------------------
+PYSEQM_METHOD = AM1
+N_STATES = 11
+PYSEQM_BATCH_SIZE = 500
+PYSEQM_SCF_EPS = 1e-10
+PYSEQM_CIS_TOL = 1e-8
+GPU_IDS = "0 1 2 3"
+
+# -----------------------------------------------------------------------------
+# Q-Chem electronic-structure settings
+# -----------------------------------------------------------------------------
+QCHEM_PROFILE = darwin
+QCHEM_EXE = /usr/projects/ml4chem/Programs/qchem/bin/qchem
+QCHEM_ENV_FILE = /vast/home/akhanna2/data/software/qchem/qchem_darwin.sh
+QCHEM_SCRATCH = ./qchem_scratch
+QCHEM_PYTHON_BIN = /usr/projects/cint/anaconda3/gpu4pyscf/bin/python
+QCHEM_PARTITION = shared-spr
+QCHEM_ACCOUNT = y2020-bf
+QCHEM_QOS = long
+QCHEM_CPUS = 32
+QCHEM_GSOPT_MEM = 64G
+QCHEM_GSOPT_WALLTIME = 08:00:00
+QCHEM_MEM = 128G
+QCHEM_WALLTIME = 24:00:00
+QCHEM_COLLECT_MEM = 32G
+QCHEM_COLLECT_WALLTIME = 02:00:00
+QCHEM_METHOD = CAM-B3LYP
+QCHEM_BASIS = 6-31G*
+QCHEM_N_ROOTS = 5
+QCHEM_ARRAY_CHUNK_SIZE = 1
+QCHEM_CHARGE = 0
+QCHEM_MULTIPLICITY = 1
+QCHEM_MEM_TOTAL_MB = 125000
+
+# -----------------------------------------------------------------------------
+# PySEQM reference minimum and dataset generation
+# -----------------------------------------------------------------------------
+# If these files are present, dataset generation uses them to build shifted
+# energies and shifted forces relative to the PySEQM ground-state minimum.
+# If they are missing, the workflow writes explicit zero reference files and
+# logs a prominent warning so manual runs still remain possible.
+# REFERENCE_ENERGY_FILE = ./example/Prodan/pyseqm/gsopt_reference/prodan_optimized_reference_energy.txt
+# REFERENCE_FORCES_FILE = ./example/Prodan/pyseqm/gsopt_reference/prodan_optimized_reference_forces.npy
+USE_BUILTIN_REFERENCE = false
+DATASET_CHOP_START_TEST = 101
+DATASET_CHOP_END_TEST = 102
+DATASET_CHOP_START_PRODUCTION = 10000
+DATASET_CHOP_END_PRODUCTION = 50001
+DATASET_CHOP_STEP = 10000
+DATASET_WORKERS = 16
+
+# -----------------------------------------------------------------------------
+# Indices and atom lists
+# -----------------------------------------------------------------------------
+START_INDEX = 1
+STOP_INDEX = 101
+N_ATOM_INDICES = 1, 2, 3, 4, 5

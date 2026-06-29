@@ -1,0 +1,123 @@
+﻿# individual_scripts.inp
+# Reference input file for running the stage scripts manually.
+# Lines beginning with # are ignored. Keys are case-insensitive and use
+# normalized snake_case. This file is documentation-oriented: individual stage
+# scripts currently receive arguments from the command line, while these values
+# show the canonical mapping used by dataset_workflow.py.
+
+# -----------------------------------------------------------------------------
+# Molecule and prefix
+# -----------------------------------------------------------------------------
+MOL_DIR = ./example/Prodan
+PREFIX = prodan
+N_STATES = 11
+
+# -----------------------------------------------------------------------------
+# Gaussian scripts
+# -----------------------------------------------------------------------------
+GAUSSIAN_SCRIPT = ./scripts/00_gaussian_screening.py
+GAUSSIAN_PATH = ./example/Prodan/gaussian/Prodan
+GAUSSIAN_RUN_GSOPT = true
+GAUSSIAN_RUN_EXSP = true
+GAUSSIAN_PREPARE_ONLY = true
+GAUSSIAN_NSTATES = 10
+GAUSSIAN_POLL_SECONDS = 60
+GAUSSIAN_ROOT = /usr/projects/cint/Gaussian/g16A03
+GAUSSIAN_EXE = g16
+GAUSSIAN_LIBRARY_PATH =
+GAUSSIAN_SCRATCH_ROOT = /tmp/akhanna2/GAUSSIAN_SCR
+OSCILLATOR_BRIGHT_THRESHOLD = 0.10
+OSCILLATOR_DARK_THRESHOLD = 0.05
+EXCITATION_ENERGY_THRESHOLD_EV = 0.50
+
+# -----------------------------------------------------------------------------
+# NEXMD scripts
+# -----------------------------------------------------------------------------
+NEXMD_SCRIPT = ./scripts/01_nexmd_ground_state.py
+NEXMD_GAUSSIAN_PATH = ./example/Prodan/gaussian/Prodan
+NEXMD_OPT_OUT_DIR = ./example/Prodan/nexmd
+NEXMD_GSDYN_OUT_DIR = ./example/Prodan/nexmd/gs_dyn
+NEXMD_METHOD = AM1
+NEXMD_N_CLASS_STEPS_TEST = 10000
+NEXMD_N_CLASS_STEPS_PRODUCTION = 5000000
+NEXMD_ROOT =
+NEXMD_EXE = /usr/projects/ml4chem/akhanna2/softwares/NEXMD/nexmd.exe
+NEXMD_LIBRARY_PATH =
+INITIAL_VELOCITIES = zero
+
+# -----------------------------------------------------------------------------
+# Frame extraction
+# -----------------------------------------------------------------------------
+EXTRACT_SCRIPT = ./scripts/02_extract_md_frames.py
+COORDS = ./example/Prodan/nexmd/gs_dyn/coords.xyz
+VELOCITIES = ./example/Prodan/nexmd/gs_dyn/velocity.out
+FRAME_START = 1
+FRAME_STOP = 101
+FRAME_STEP = 1
+FRAME_OUTPUT = ./example/Prodan/nexmd/gs_dyn/101_10fs_frames
+FRAME_WORKERS = 8
+FULL_VALIDATION = false
+VALIDATION_SAMPLES = 10
+NO_VALIDATION = false
+
+# -----------------------------------------------------------------------------
+# PySEQM preparation and batch excited-state properties
+# -----------------------------------------------------------------------------
+PREPARE_FRAMES_SCRIPT = ./scripts/03_prepare_frame_inputs.py
+PREPARE_FRAMES_BASE_PATH = ./example/Prodan/nexmd/gs_dyn/101_10fs_frames
+PREPARE_FRAMES_START_FRAME = 1
+PREPARE_FRAMES_END_FRAME = 102
+PREPARE_FRAMES_SORT_ZRV = true
+
+PYSEQM_SCRIPT = ./scripts/04_run_pyseqm_properties.py
+PYSEQM_PYTHON_BIN = /usr/projects/ml4chem/akhanna2/softwares/envs/ml_env/bin/python
+PYSEQM_ROOT =
+PYSEQM_LIBRARY_PATH =
+CUDA_PATH = /usr/local/cuda
+PYSEQM_DEVICE = auto
+PYSEQM_CPUS = 8
+PYSEQM_MEM = 5G
+PYSEQM_OPT_CPUS = 8
+PYSEQM_OPT_MEM = 5G
+PYSEQM_GPU_GRES = gpu:4
+PYSEQM_COORDS = ./example/Prodan/pyseqm/prepared_frames/prodan_R.npy
+PYSEQM_SPECIES = ./example/Prodan/pyseqm/prepared_frames/prodan_Z.npy
+PYSEQM_METHOD = AM1
+PYSEQM_BATCH_SIZE = 500
+PYSEQM_SCF_EPS = 1e-10
+PYSEQM_CIS_TOL = 1e-8
+GPU_IDS = "0 1 2 3"
+
+# -----------------------------------------------------------------------------
+# PySEQM reference optimization and dataset generation
+# -----------------------------------------------------------------------------
+PYSEQM_OPT_SCRIPT = ./scripts/pyseqm_optimized_geom.py
+PYSEQM_OPT_XYZ = ./example/Prodan/nexmd/coords.xyz
+PYSEQM_OPT_OUTPUT_DIR = ./example/Prodan/pyseqm/gsopt_reference
+
+GENERATE_DATASET_SCRIPT = ./scripts/05_generate_dataset.py
+DATASET_INPUT_DIR = ./example/Prodan/pyseqm/batch_exsp
+DATASET_OUTPUT_DIR = ./example/Prodan/dataset
+REFERENCE_ENERGY_FILE = ./example/Prodan/pyseqm/gsopt_reference/prodan_optimized_reference_energy.txt
+REFERENCE_FORCES_FILE = ./example/Prodan/pyseqm/gsopt_reference/prodan_optimized_reference_forces.npy
+DATASET_CHOP_START = 101
+DATASET_CHOP_END = 102
+DATASET_CHOP_STEP = 10000
+DATASET_WORKERS = 16
+
+# -----------------------------------------------------------------------------
+# Q-Chem backend script examples
+# -----------------------------------------------------------------------------
+# Q-Chem GS optimization/reference extraction:
+# python scripts/06_qchem_backend.py --gsopt --xyz <mol_dir>/unopt.xyz --output-dir <mol_dir>/qchem/gsopt_reference --prefix <prefix>
+#
+# Q-Chem frame-array task, normally launched by generated SLURM array:
+# python scripts/06_qchem_backend.py --frame --coords <prefix>_R.npy --species <prefix>_Z.npy --output-dir <mol_dir>/qchem/batch_exsp --shard-dir <mol_dir>/qchem/batch_exsp/shards --prefix <prefix> --chunk-size 1
+#
+# Q-Chem shard collector:
+# python scripts/06_qchem_backend.py --collect --coords <prefix>_R.npy --species <prefix>_Z.npy --output-dir <mol_dir>/qchem/batch_exsp --shard-dir <mol_dir>/qchem/batch_exsp/shards --prefix <prefix>
+QCHEM_METHOD = CAM-B3LYP
+QCHEM_BASIS = 6-31G*
+QCHEM_N_ROOTS = 5
+QCHEM_CPUS = 32
+QCHEM_ARRAY_CHUNK_SIZE = 1

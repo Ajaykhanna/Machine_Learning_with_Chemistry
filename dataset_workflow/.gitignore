@@ -1,0 +1,37 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Workflow logs
+logs/*.log
+!logs/.gitkeep
+
+# Generated molecule-local workflow products
+example/*/gaussian/
+example/*/nexmd/
+example/*/pyseqm/
+example/*/dataset/
+example/*/slurm/
+molecules/*/gaussian/
+molecules/*/nexmd/
+molecules/*/pyseqm/
+molecules/*/dataset/
+molecules/*/slurm/
+
+# Cluster/runtime output artifacts
+*.log
+*.out
+*.err
+*.qlog
+*.chk
+*.rwf
+*.fchk
+*.com
+
+# Large generated numerical outputs
+*.npy
+*.npz
+
+# Generated plots
+*.png
+

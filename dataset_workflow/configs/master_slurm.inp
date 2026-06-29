@@ -1,0 +1,86 @@
+﻿# master_slurm.inp
+# SLURM policy file documenting default scheduler choices for dataset_workflow.py.
+# Lines beginning with # are ignored. Keys are case-insensitive and use
+# normalized snake_case. The workflow writes one step-specific sbatch file under
+# each molecule directory in <mol_dir>/slurm/.
+
+# -----------------------------------------------------------------------------
+# Global scheduler behavior
+# -----------------------------------------------------------------------------
+SUBMIT_JOBS = false
+MONITOR_JOBS = true
+POLL_SECONDS = 60
+MAX_PARALLEL_MOLECULES = 2
+WRAPPER_PARTITION = general
+DEFAULT_PARTITION = general
+GPU_PARTITION = ml4chem
+GPU_GRES = gpu:4
+PYSEQM_DEVICE = auto
+ACCOUNT = 
+NODELIST = 
+CONSTRAINT = 
+
+# -----------------------------------------------------------------------------
+# CPU-stage defaults: Gaussian, NEXMD, extraction, dataset generation
+# -----------------------------------------------------------------------------
+GAUSSIAN_CPUS = 16
+GAUSSIAN_MEM_GB = 100
+GAUSSIAN_WALLTIME = 05:00:00
+NEXMD_CPUS = 8
+NEXMD_MEM = 32G
+NEXMD_OPT_WALLTIME = 02:00:00
+NEXMD_GSDYN_WALLTIME = 12:00:00
+FRAME_CPUS = 8
+FRAME_MEM = 32G
+FRAME_WALLTIME = 02:00:00
+DATASET_CPUS = 16
+DATASET_MEM = 64G
+DATASET_WALLTIME = 10:00:00
+
+# -----------------------------------------------------------------------------
+# GPU-stage defaults: PySEQM batch EXSP and PySEQM reference optimization
+# -----------------------------------------------------------------------------
+PYSEQM_CPUS = 8
+PYSEQM_MEM = 5G
+PYSEQM_WALLTIME = 10:00:00
+PYSEQM_GPUS = 4
+PYSEQM_GPU_TYPE = 
+PYSEQM_OPT_CPUS = 8
+PYSEQM_OPT_MEM = 5G
+PYSEQM_OPT_WALLTIME = 02:00:00
+
+# -----------------------------------------------------------------------------
+# Q-Chem CPU-stage defaults
+# -----------------------------------------------------------------------------
+QCHEM_PROFILE = darwin
+QCHEM_PARTITION = shared-spr
+QCHEM_ACCOUNT = y2020-bf
+QCHEM_QOS = long
+QCHEM_CPUS = 32
+QCHEM_GSOPT_MEM = 64G
+QCHEM_GSOPT_WALLTIME = 08:00:00
+QCHEM_MEM = 128G
+QCHEM_WALLTIME = 24:00:00
+QCHEM_COLLECT_MEM = 32G
+QCHEM_COLLECT_WALLTIME = 02:00:00
+QCHEM_ARRAY_CHUNK_SIZE = 1
+
+# -----------------------------------------------------------------------------
+# Runtime environments
+# -----------------------------------------------------------------------------
+PYTHON_BIN = /usr/projects/ml4chem/akhanna2/softwares/envs/ml_env/bin/python
+PYSEQM_PYTHON_BIN = /usr/projects/ml4chem/akhanna2/softwares/envs/ml_env/bin/python
+GAUSSIAN_ROOT = /usr/projects/cint/Gaussian/g16A03
+GAUSSIAN_EXE = g16
+GAUSSIAN_LIBRARY_PATH =
+GAUSSIAN_SCRATCH_ROOT = /tmp/akhanna2/GAUSSIAN_SCR
+NEXMD_ROOT =
+NEXMD_EXE = /usr/projects/ml4chem/akhanna2/softwares/NEXMD/nexmd.exe
+NEXMD_LIBRARY_PATH =
+PYSEQM_ROOT =
+PYSEQM_LIBRARY_PATH =
+CUDA_PATH = /usr/local/cuda
+QCHEM_EXE = /usr/projects/ml4chem/Programs/qchem/bin/qchem
+QCHEM_ENV_FILE = /vast/home/akhanna2/data/software/qchem/qchem_darwin.sh
+QCHEM_SCRATCH = ./qchem_scratch
+QCHEM_PYTHON_BIN = /usr/projects/cint/anaconda3/gpu4pyscf/bin/python
